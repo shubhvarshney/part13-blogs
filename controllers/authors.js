@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const { Blog } = require('../models')
-const sequelize = require('../util/db')
+const { fn, col } = require('sequelize');
 
 router.get('/', async (req, res, next) => {
   try {
@@ -8,10 +8,10 @@ router.get('/', async (req, res, next) => {
         group: 'author', 
         attributes: [
             'author',
-            [sequelize.fn('COUNT', sequelize.col('id')), 'articles'],
-            [sequelize.fn('SUM', sequelize.col('likes')), 'likes']
+            [fn('COUNT', col('id')), 'articles'],
+            [fn('SUM', col('likes')), 'likes']
         ],
-        order: [sequelize.fn('max', sequelize.col('likes')), 'DESC']
+        order: [['likes', 'DESC']]
       })
       res.json(authors)
   } catch (error) {

@@ -3,21 +3,7 @@ const jwt = require('jsonwebtoken')
 const { Blog, User } = require('../models')
 const { SECRET } = require('../util/config')
 const { Op } = require('sequelize')
-const { sequelize } = require('../util/db')
-
-const tokenExtractor = (req, res, next) => {
-  const authorization = req.get('authorization')
-  if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
-    try {
-      req.decodedToken = jwt.verify(authorization.substring(7), SECRET)
-    } catch{
-      return res.status(401).json({ error: 'token invalid' })
-    }
-  }  else {
-    return res.status(401).json({ error: 'token missing' })
-  }
-  next()
-}
+const { tokenExtractor } = require('../util/middlewares')
 
 const blogFinder = async (req, res, next) => {
   try {
@@ -55,21 +41,21 @@ router.get('/', async (req, res, next) => {
         attributes: ['name', 'username']
       },
       where,
-      order: [sequelize.fn('max', sequelize.col('likes')), 'DESC']
+      order: [['likes', 'DESC']]
     })
     res.json(blogs)
   } catch (error) {
-    next(error)
+    console.log(error)
   }
 })
 
 router.post('/', tokenExtractor, async (req, res, next) => {
   try {
-    const { author, url, title } = req.body
+    const { author, url, title, year } = req.body
     
     // Check if required fields are provided
-    if (!url || !title) {
-      return res.status(400).json({ error: 'url and title are required' })
+    if (!url || !title || !year) {
+      return res.status(400).json({ error: 'url, title, and year are required' })
     }
     
     // Check if token was properly decoded
@@ -82,7 +68,7 @@ router.post('/', tokenExtractor, async (req, res, next) => {
       return res.status(401).json({ error: 'user not found' })
     }
     
-    const blog = await Blog.create({ author, url, title, userId: user.id })
+    const blog = await Blog.create({ author, url, title, year, userId: user.id })
     res.status(201).json(blog)
   } catch (error) {
     next(error)
